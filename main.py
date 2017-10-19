@@ -98,7 +98,6 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
 
     # skip connection with layer 4:
     #   upsample layer 7 to size of layer 4, and add them together
-    #   (1 x 1 x num_classes)->(4 x 4 x num_classes) 
     kernel_size=4
     stride     =2    
     output = tf.layers.conv2d_transpose(l7_1x1, num_classes, kernel_size, stride,
@@ -109,7 +108,6 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
 
     # skip connection with layer 3:
     #   upsample output to size of layer 3, and add them together
-    #   (4 x 4 x num_classes )->(10 x 10 x num_classes)
     kernel_size=4
     stride     =2    
     output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
@@ -119,7 +117,6 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     output = tf.add(output, l3_1x1, name='skip3')
     
     # finally, upsample to original image size
-    #  (10 x 10 x num_classes)->(88 x 88 x num_classes) 
     kernel_size=16
     stride     =8   
     output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
