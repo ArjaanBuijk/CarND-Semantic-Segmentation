@@ -8,18 +8,6 @@ The encoder is based on VGG-16:
   (https://www.cs.toronto.edu/~frossard/post/vgg16/)
   (https://gist.githubusercontent.com/ksimonyan/211839e770f7b538e2d8/raw/0067c9b32f60362c74f4c445a080beed06b07eb3/VGG_ILSVRC_16_layers_deploy.prototxt)
  
- input image: 224 x 224 x    3
-               OUTPUT SHAPE
-              ----------------
- layer 1    : 224 x 224 x   64   
- layer 2    : 112 x 112 x  128  
- layer 3    :  56 x  56 x  256 
- layer 4    :  28 x  28 x  512
- layer 5    :  14 x  14 x  512   
- layer 6    :   7 x   7 x  512   
- layer 7    :   1 x   1 x 4096   
-
- 
 We train and test using the Kitti Road dataset: 
  http://www.cvlibs.net/download.php?file=data_road.zip
  http://www.cvlibs.net/datasets/kitti/eval_road.php 
@@ -89,56 +77,57 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
     
-    ########################################################################
-    # DECODER
-    #
-    # complete the decoder by replacing the fully connected layer that comes
-    # after layer 7 with a 1x1 convolution.
-    #
-    # we call this the 8th layer
+    # get depth of num_classes for layers 3,4,7 using a 1x1 convolution
     kernel_size=1
     stride     =1
-    l8 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size, stride, 
+    l3_1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, kernel_size, stride, 
+                              padding='same',
+                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                          name='l3_conv_1x1')
+    
+    l4_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, kernel_size, stride, 
+                              padding='same',
+                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                          name='l4_conv_1x1')    
+    
+    l7_1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size, stride, 
                           padding='same',
                           kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
-                          name='layer_8')
+                          name='l7_conv_1x1')
     
 
-    ########################################################################
-    # ENCODER
-    #    
-    # upsample 8th layer to original image size
-    # go from (1 x 1 x num_classes) to (224 x 224 x num_classes) 
-    kernel_size=224
+    # skip connection with layer 4:
+    #   upsample layer 7 to size of layer 4, and add them together
+    #   (1 x 1 x num_classes)->(4 x 4 x num_classes) 
+    kernel_size=4
     stride     =2    
-    l9 = tf.layers.conv2d_transpose(l8, num_classes, kernel_size, stride,
+    output = tf.layers.conv2d_transpose(l7_1x1, num_classes, kernel_size, stride,
                                     padding='same',
                                     kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
-                                    name='layer_9') 
-    
-    # SKIP CONNECTION:
-    # upsample 3th layer to original image size and add to layer 9
-    # go from (56 x 56 x num_classes) to (224 x 224 x num_classes) 
-    kernel_size=114
+                                    name='up_to_4')     
+    output = tf.add(output, l4_1x1, name='skip4')
+
+    # skip connection with layer 3:
+    #   upsample output to size of layer 3, and add them together
+    #   (4 x 4 x num_classes )->(10 x 10 x num_classes)
+    kernel_size=4
     stride     =2    
-    l3_up = tf.layers.conv2d_transpose(vgg_layer3_out, num_classes, kernel_size, stride,
+    output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
                                     padding='same',
                                     kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
-                                    name='layer3_upsampled')
-    l9_l3 = tf.add(l9, l3_up, name='sum_layer9_layer3')
+                                    name='up_to_3')
+    output = tf.add(output, l3_1x1, name='skip3')
     
-    # SKIP CONNECTION:
-    # upsample 4th layer to original image size and add to layer 9
-    # go from (28 x 28 x num_classes) to (224 x 224 x num_classes) 
-    kernel_size=170
-    stride     =2    
-    l4_up = tf.layers.conv2d_transpose(vgg_layer4_out, num_classes, kernel_size, stride,
-                                       padding='same',
+    # finally, upsample to original image size
+    #  (10 x 10 x num_classes)->(88 x 88 x num_classes) 
+    kernel_size=16
+    stride     =8   
+    output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
+                                        padding='same',
                                     kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
-                                    name='layer4_upsampled')
-    l9_l3_l4 = tf.add(l9_l3, l4_up, name='sum_layer9_layer3_layer4')    
+                                    name='output')       
     
-    return l9_l3_l4
+    return output
 
 
 print("Testing layers")

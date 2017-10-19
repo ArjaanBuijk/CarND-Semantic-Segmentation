@@ -11,35 +11,33 @@ def upsample(x, kernel_size=2, stride=2, depth=3):
     """
     return tf.layers.conv2d_transpose(x, d, kernel_size, stride)
 
-# 4x4x3 to 8x8x3
-h=4
-w=4
-d=3
-x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
-conv = upsample(x, kernel_size=2, stride=2, depth=3)
 
-# 1x1x3 to 224x224x3
+# 1x1x3 to 4x4x3
 h=1
 w=1
 d=3
+kernel_size=4
+stride=2
 x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
-conv = upsample(x, kernel_size=224, stride=2, depth=3)
+conv = upsample(x, kernel_size, stride, depth=d)
 
-# 56x56x3 to 224x224x3
-h=56
-w=56
+# 1x1x3 to 10x10x3
+h=4
+w=4
 d=3
+kernel_size=4
+stride=2
 x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
-conv = upsample(x, kernel_size=114, stride=2, depth=3)
+conv = upsample(x, kernel_size, stride, depth=d)
 
-# 28x28x3 to 224x224x3
-h=28
-w=28
+# 10x10x3 to 88x88x3
+h=10
+w=10
 d=3
+kernel_size=16
+stride=8
 x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
-conv = upsample(x, kernel_size=170, stride=2, depth=3)
-
-
+conv = upsample(x, kernel_size, stride, depth=d)
 
 
 with tf.Session() as sess:
