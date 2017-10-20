@@ -141,7 +141,23 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     # TODO: Implement function
-    return None, None, None
+    
+    # reshape output tensor into a 2D tensor where each row represents a pixel
+    # and each column a class.
+    logits = tf.reshape(nn_last_layer, (-1, num_classes), name='logits')
+    
+    # then apply softmax to get probability distribution over the classes for each 
+    # pixel, and calculate the average cross entropy loss over all pixels
+    labels = tf.reshape(correct_label, (-1, num_classes))
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                                        labels=labels,logits=logits,name='loss'))
+    
+    # training is done with Adam optimizer
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
+    
+    return logits, train_op, cross_entropy_loss
+
+print("Testing optimize")
 tests.test_optimize(optimize)
 
 
