@@ -207,8 +207,11 @@ def run():
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
 
-    correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
-    learning_rate = tf.placeholder(tf.float32)
+    # Placeholders to take in batches of data
+    tf_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
+
+    # Placeholder for learning rate
+    tf_learning_rate = tf.placeholder(tf.float32)
     
     # Download pretrained vgg model
     # helper.maybe_download_pretrained_vgg(data_dir)
@@ -229,7 +232,7 @@ def run():
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
         layers_output = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
-        logits, train_op, cross_entropy_loss = optimize(layers_output, correct_label, learning_rate, num_classes)
+        logits, train_op, cross_entropy_loss = optimize(layers_output, tf_label, tf_learning_rate, num_classes)
         
         sess.run(tf.global_variables_initializer())
         
@@ -237,7 +240,7 @@ def run():
         epochs        = EPOCHS
         batch_size    = BATCH_SIZE
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-                 correct_label, keep_prob, learning_rate)
+                 tf_label, keep_prob, tf_learning_rate)
 
         # TODO: Save inference data using helper.save_inference_samples
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
