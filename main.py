@@ -83,6 +83,14 @@ def conv2d_1x1(layer, num_classes, name):
                             kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                             name=name)
 
+def deconvolute(layer, num_classes, kernel_size, stride, name):
+    init = tf.truncated_normal_initializer(stddev = 0.01)    
+    return tf.layers.conv2d_transpose(layer, num_classes, kernel_size, stride,
+                                    padding='same',
+                                    kernel_initializer = init,
+                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
+                                    name=name)
+
 def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     Create the layers for a fully convolutional network.  Build skip-layers using the vgg layers.
@@ -92,15 +100,6 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :param num_classes: Number of classes to classify
     :return: The Tensor for the last layer of output
     """
-    # TODO: Implement function
-    init = tf.truncated_normal_initializer(stddev = 0.01)
-    
-    # transform to depth=num_classes for layers 3,4,7 using a 1x1 convolution
-    l3_1x1 = conv2d_1x1(vgg_layer3_out, num_classes, 'l3_1x1')
-    l4_1x1 = conv2d_1x1(vgg_layer4_out, num_classes, 'l4_1x1')
-    l7_1x1 = conv2d_1x1(vgg_layer7_out, num_classes, 'l7_1x1')
-    
-    
     #
     # Uncomment these to see dimensions of the layers 
     #
@@ -109,38 +108,27 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #tf.Print(vgg_layer7_out, [tf.shape(vgg_layer7_out)], message="Shape of vgg_layer7_out: ")
     #
 
-    # skip connection with layer 4:
-    #   upsample layer 7 to size of layer 4, and add them together
-    kernel_size=4
-    stride     =2    
-    output = tf.layers.conv2d_transpose(l7_1x1, num_classes, kernel_size, stride,
-                                    padding='same',
-                                    kernel_initializer = init,
-                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
-                                    name='up_to_4') 
+
+    # TODO: Implement function
+    
+    # transform to depth=num_classes for layers 3,4,7 using a 1x1 convolution
+    l3_1x1 = conv2d_1x1(vgg_layer3_out, num_classes, 'l3_1x1')
+    l4_1x1 = conv2d_1x1(vgg_layer4_out, num_classes, 'l4_1x1')
+    l7_1x1 = conv2d_1x1(vgg_layer7_out, num_classes, 'l7_1x1')
+        
+    # upsample with two skip connection back to original image size
+    # -with layer 4
+    output = deconvolute(l7_1x1, num_classes, 4, 2, name='up_to_4') 
     output = tf.layers.batch_normalization(output)
     output = tf.add(output, l4_1x1, name='skip4')
 
-    # skip connection with layer 3:
-    #   upsample output to size of layer 3, and add them together
-    kernel_size=4
-    stride     =2    
-    output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
-                                    padding='same',
-                                    kernel_initializer = init,
-                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
-                                    name='up_to_3')
+    # -with layer 3
+    output = deconvolute(output, num_classes, 4, 2, name='up_to_3') 
     output = tf.layers.batch_normalization(output)
     output = tf.add(output, l3_1x1, name='skip3')
     
-    # finally, upsample to original image size
-    kernel_size=16
-    stride     =8   
-    output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
-                                        padding='same',
-                                        kernel_initializer = init,
-                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
-                                    name='output')       
+    # - to original image size
+    output = deconvolute(output, num_classes, 16, 8, name='output') 
     
     return output
 
