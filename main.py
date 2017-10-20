@@ -91,6 +91,12 @@ def deconvolute(layer, num_classes, kernel_size, stride, name):
                                     kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                                     name=name)
 
+def skip(output_layer, skip_layer, num_classes, kernel_size, stride, name):
+    output = deconvolute(output_layer, num_classes, kernel_size, stride, name=name+'_deconv') 
+    output = tf.layers.batch_normalization(output)
+    return tf.add(output, skip_layer, name=name)
+
+
 def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     Create the layers for a fully convolutional network.  Build skip-layers using the vgg layers.
@@ -108,7 +114,6 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #tf.Print(vgg_layer7_out, [tf.shape(vgg_layer7_out)], message="Shape of vgg_layer7_out: ")
     #
 
-
     # TODO: Implement function
     
     # transform to depth=num_classes for layers 3,4,7 using a 1x1 convolution
@@ -116,19 +121,10 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     l4_1x1 = conv2d_1x1(vgg_layer4_out, num_classes, 'l4_1x1')
     l7_1x1 = conv2d_1x1(vgg_layer7_out, num_classes, 'l7_1x1')
         
-    # upsample with two skip connection back to original image size
-    # -with layer 4
-    output = deconvolute(l7_1x1, num_classes, 4, 2, name='up_to_4') 
-    output = tf.layers.batch_normalization(output)
-    output = tf.add(output, l4_1x1, name='skip4')
-
-    # -with layer 3
-    output = deconvolute(output, num_classes, 4, 2, name='up_to_3') 
-    output = tf.layers.batch_normalization(output)
-    output = tf.add(output, l3_1x1, name='skip3')
-    
-    # - to original image size
-    output = deconvolute(output, num_classes, 16, 8, name='output') 
+    # upsample with two skip connection and a deconvolution back to original image size
+    output = skip(l7_1x1, l4_1x1, num_classes,  4, 2, name='skip4')
+    output = skip(output, l3_1x1, num_classes,  4, 2, name='skip3')
+    output = deconvolute(output , num_classes, 16, 8, name='output') 
     
     return output
 
