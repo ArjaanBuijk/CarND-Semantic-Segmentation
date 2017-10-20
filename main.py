@@ -21,12 +21,12 @@ from distutils.version import LooseVersion
 import project_tests as tests
 
 # Hyper-parameters
-EPOCHS        = 1
-BATCH_SIZE    = 8
+EPOCHS        = 10
+BATCH_SIZE    = 16
 KEEP_PROB     = 0.5   # Use only during training
 
 # Hyper-parameters to drive Adam optimizer
-LEARNING_RATE = 1.E-2 # Choose value between 1E-4 and 1.E-2
+LEARNING_RATE = 1.E-4 # Choose value between 1E-4 and 1.E-2
 
 
 # Check TensorFlow Version
