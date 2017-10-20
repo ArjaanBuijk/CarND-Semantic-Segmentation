@@ -21,9 +21,10 @@ from distutils.version import LooseVersion
 import project_tests as tests
 
 # Hyper-parameters
-EPOCHS        = 10
-BATCH_SIZE    = 16
+EPOCHS        = 1
+BATCH_SIZE    = 2
 KEEP_PROB     = 0.5   # Use only during training
+REG           = 1.E-3 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
 LEARNING_RATE = 1.E-4 # Choose value between 1E-4 and 1.E-2
@@ -90,19 +91,19 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     l3_1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, kernel_size, stride, 
                               padding='same',
                               kernel_initializer = init,
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                               name='l3_conv_1x1')
     
     l4_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, kernel_size, stride, 
                               padding='same',
                               kernel_initializer = init,
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                               name='l4_conv_1x1')    
     
     l7_1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size, stride, 
                               padding='same',
                               kernel_initializer = init,
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                               name='l7_conv_1x1')
     
     #
@@ -120,7 +121,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     output = tf.layers.conv2d_transpose(l7_1x1, num_classes, kernel_size, stride,
                                     padding='same',
                                     kernel_initializer = init,
-                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                                     name='up_to_4') 
     output = tf.layers.batch_normalization(output)
     output = tf.add(output, l4_1x1, name='skip4')
@@ -132,7 +133,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
                                     padding='same',
                                     kernel_initializer = init,
-                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                                     name='up_to_3')
     output = tf.layers.batch_normalization(output)
     output = tf.add(output, l3_1x1, name='skip3')
@@ -143,7 +144,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     output = tf.layers.conv2d_transpose(output, num_classes, kernel_size, stride,
                                         padding='same',
                                         kernel_initializer = init,
-                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(1.e-3),
+                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(REG),
                                     name='output')       
     
     return output
