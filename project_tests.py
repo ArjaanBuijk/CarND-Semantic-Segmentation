@@ -114,18 +114,42 @@ def test_optimize(optimize):
 def test_train_nn(train_nn):
     epochs = 1
     batch_size = 2
+    num_classes = 2
 
     def get_batches_fn(batach_size_parm):
-        shape = [batach_size_parm, 2, 3, 3]
-        return np.arange(np.prod(shape)).reshape(shape)
+        shape = [batach_size_parm, 2, 2, 2]
+        images = np.arange(np.prod(shape)).reshape(shape)
+        labels = np.zeros_like(images).reshape(shape)
+        return images, labels
+        #return np.arange(np.prod(shape)).reshape(shape)
 
     train_op = tf.constant(0)
     cross_entropy_loss = tf.constant(10.11)
     input_image = tf.placeholder(tf.float32, name='input_image')
-    correct_label = tf.placeholder(tf.float32, name='correct_label')
+    #correct_label = tf.placeholder(tf.float32, name='correct_label')
     keep_prob = tf.placeholder(tf.float32, name='keep_prob')
     learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+    
+    #logits = tf.placeholder(tf.float32, [None, None, None], name='logits')
+    shape  = [2, 2, 2]
+    output = np.zeros_like(np.arange(np.prod(shape)),dtype=np.float)
+    logits = tf.reshape(output, (-1, num_classes))
+    
+    #tf_label      = tf.placeholder(tf.float32, [None, None, None, num_classes], name='label')
+    #tf_prediction = tf.placeholder(tf.float32, [None, None, None, num_classes], name='prediction')
+    tf_label      = tf.placeholder(tf.float32, [None, None, None], name='label')
+    tf_prediction = tf.placeholder(tf.float32, [None, None, None], name='prediction')    
+    
+    tf_metric, tf_metric_update = tf.metrics.mean_iou(tf_label, tf_prediction, num_classes,
+                                                      name="my_metric")
+    running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="my_metric")
+    running_vars_initializer = tf.variables_initializer(var_list=running_vars)
     with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        
+        # initialize/reset the running variables
+        sess.run(running_vars_initializer)        
+        
         parameters = {
             'sess': sess,
             'epochs': epochs,
@@ -134,9 +158,15 @@ def test_train_nn(train_nn):
             'train_op': train_op,
             'cross_entropy_loss': cross_entropy_loss,
             'input_image': input_image,
-            'correct_label': correct_label,
+            'tf_label': tf_label,
             'keep_prob': keep_prob,
-            'learning_rate': learning_rate}
+            'logits' : logits,
+            'learning_rate': learning_rate,
+            'tf_prediction': tf_prediction, 
+            'tf_metric': tf_metric, 
+            'tf_metric_update': tf_metric_update, 
+            'running_vars': running_vars, 
+            'running_vars_initializer': running_vars_initializer}
         _prevent_print(train_nn, parameters)
 
 
