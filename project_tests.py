@@ -119,8 +119,8 @@ def test_train_nn(train_nn):
     def get_batches_fn(batach_size_parm):
         shape = [batach_size_parm, 2, 2, 2]
         images = np.arange(np.prod(shape)).reshape(shape)
-        labels = np.zeros_like(images).reshape(shape)
-        return images, labels
+        labels = np.zeros_like(images, dtype=bool).reshape(shape)
+        yield images, labels
         #return np.arange(np.prod(shape)).reshape(shape)
 
     train_op = tf.constant(0)
@@ -131,14 +131,14 @@ def test_train_nn(train_nn):
     learning_rate = tf.placeholder(tf.float32, name='learning_rate')
     
     #logits = tf.placeholder(tf.float32, [None, None, None], name='logits')
-    shape  = [2, 2, 2]
+    shape  = [2, 2, 2, 2]
     output = np.zeros_like(np.arange(np.prod(shape)),dtype=np.float)
     logits = tf.reshape(output, (-1, num_classes))
     
     #tf_label      = tf.placeholder(tf.float32, [None, None, None, num_classes], name='label')
     #tf_prediction = tf.placeholder(tf.float32, [None, None, None, num_classes], name='prediction')
-    tf_label      = tf.placeholder(tf.float32, [None, None, None], name='label')
-    tf_prediction = tf.placeholder(tf.float32, [None, None, None], name='prediction')    
+    tf_label      = tf.placeholder(tf.float32, [None, None, None, 2], name='label')
+    tf_prediction = tf.placeholder(tf.float32, [None, None, None, 2], name='prediction')    
     
     tf_metric, tf_metric_update = tf.metrics.mean_iou(tf_label, tf_prediction, num_classes,
                                                       name="my_metric")
