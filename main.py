@@ -21,10 +21,11 @@ from distutils.version import LooseVersion
 import project_tests as tests
 
 # Hyper-parameters
-EPOCHS        = 10
-BATCH_SIZE    = 8
+EPOCHS        = 15
+BATCH_SIZE    = 24     # I got best result with batch size of 24, 
+#                     # but needed to run on AWS g3x4.large instance
 KEEP_PROB     = 0.5   # Use only during training
-REG           = 1.E-3 # For regularization
+REG           = 1.E-2 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
 LEARNING_RATE = 1.E-4 # Choose value between 1E-4 and 1.E-2
@@ -70,8 +71,10 @@ def load_vgg(sess, vgg_path):
     # return the tensors
     return input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out
 
+print("-------------------------------------------")
 print("Testing load_vgg")
 tests.test_load_vgg(load_vgg, tf)
+print("-------------------------------------------")
 
 def conv2d_1x1(layer, num_classes, name):
     init = tf.truncated_normal_initializer(stddev = 0.01)    
@@ -128,9 +131,10 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     
     return output
 
-
+print("-------------------------------------------")
 print("Testing layers")
 tests.test_layers(layers)
+print("-------------------------------------------")
 
 def optimize(nn_last_layer, tf_label, learning_rate, num_classes):
     """
@@ -158,8 +162,10 @@ def optimize(nn_last_layer, tf_label, learning_rate, num_classes):
     
     return logits, train_op, cross_entropy_loss
 
+print("-------------------------------------------")
 print("Testing optimize")
 tests.test_optimize(optimize)
+print("-------------------------------------------")
 
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
@@ -246,8 +252,10 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         score_epoch= score_total/count
         print("EPOCH {0:<12d}: Average loss and IoU score per batch = {1:.3f}, {2:.3f}".format(i+1, loss_epoch, score_epoch))            
 
-print("TURNED OFF UNIT TEST FOR Testing train_nn")            
-#tests.test_train_nn(train_nn)
+print("-------------------------------------------")
+print("Testing train_nn")            
+tests.test_train_nn(train_nn)
+print("-------------------------------------------")
 
 def run():
     num_classes = 2
