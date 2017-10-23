@@ -9,9 +9,10 @@ import time
 import tensorflow as tf
 from glob import glob
 from urllib.request import urlretrieve
-from tqdm import tqdm
+#from tqdm import tqdm
 
 
+#class DLProgress(tqdm):
 class DLProgress(tqdm):
     last_block = 0
 

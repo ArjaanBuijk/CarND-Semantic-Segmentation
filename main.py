@@ -20,12 +20,16 @@ import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
+# to create graph for Tensorboard
+from tensorflow.python.platform import gfile
+from tensorflow.core.protobuf import saved_model_pb2
+from tensorflow.python.util import compat
+
 # Hyper-parameters
 EPOCHS        = 15
-BATCH_SIZE    = 24     # I got best result with batch size of 24, 
-#                     # but needed to run on AWS g3x4.large instance
+BATCH_SIZE    = 4
 KEEP_PROB     = 0.5   # Use only during training
-REG           = 1.E-2 # For regularization
+REG           = 1.E-3 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
 LEARNING_RATE = 1.E-4 # Choose value between 1E-4 and 1.E-2
@@ -40,6 +44,16 @@ if not tf.test.gpu_device_name():
     warnings.warn('No GPU found. Please use a GPU to train your neural network.')
 else:
     print('Default GPU Device: {}'.format(tf.test.gpu_device_name()))
+
+def create_graph(sess, model_filename):
+    model_filename ='saved_model.pb'
+    with gfile.FastGFile(model_filename, 'rb') as f:
+        data = compat.as_bytes(f.read())
+        sm = saved_model_pb2.SavedModel()
+        sm.ParseFromString(data)
+        g_in = tf.import_graph_def(sm.meta_graphs[0].graph_def)
+    
+    
 
 def load_vgg(sess, vgg_path):
     """
@@ -127,7 +141,14 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     # upsample with two skip connection and a deconvolution back to original image size
     output = skip(l7_1x1, l4_1x1, num_classes,  4, 2, name='skip4')
     output = skip(output, l3_1x1, num_classes,  4, 2, name='skip3')
-    output = deconvolute(output , num_classes, 16, 8, name='output') 
+    
+    # try1
+    #output = deconvolute(output , num_classes, 16, 8, name='output') 
+    
+    # try2 - do it in 3 increments, to get some more depth in the network
+    output = deconvolute(output, num_classes, 4, 2, name='final1')
+    output = deconvolute(output, num_classes, 2, 2, name='final2')
+    output = deconvolute(output, num_classes, 2, 2, name='output')
     
     return output
 
