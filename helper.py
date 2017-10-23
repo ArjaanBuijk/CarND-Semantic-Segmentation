@@ -13,7 +13,7 @@ from urllib.request import urlretrieve
 
 
 #class DLProgress(tqdm):
-class DLProgress(tqdm):
+class DLProgress():
     last_block = 0
 
     def hook(self, block_num=1, block_size=1, total_size=None):
