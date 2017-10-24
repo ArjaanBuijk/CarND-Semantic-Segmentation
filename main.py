@@ -32,7 +32,8 @@ KEEP_PROB     = 0.5   # Use only during training
 REG           = 1.E-3 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
-LEARNING_RATE = 1.E-4 # Choose value between 1E-4 and 1.E-2
+LEARNING_RATE = 1.E-5 # Choose value between 1E-4 and 1.E-2
+EPSILON       = 1.E-5 # Default value of 1.E-8 not always good...
 
 
 # Check TensorFlow Version
@@ -157,12 +158,13 @@ print("Testing layers")
 tests.test_layers(layers)
 print("-------------------------------------------")
 
-def optimize(nn_last_layer, tf_label, learning_rate, num_classes):
+def optimize(nn_last_layer, tf_label, learning_rate, epsilon, num_classes):
     """
     Build the TensorFLow loss and optimizer operations.
     :param nn_last_layer: TF Tensor of the last layer in the neural network
     :param tf_label: TF Placeholder for the correct label image
     :param learning_rate: TF Placeholder for the learning rate
+    :param epsilon: TF Placeholder for epsilon of the Adam optimizer
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
@@ -179,7 +181,8 @@ def optimize(nn_last_layer, tf_label, learning_rate, num_classes):
                                         labels=labels,logits=logits,name='loss'))
     
     # training is done with Adam optimizer
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
+    train_op = tf.train.AdamOptimizer(learning_rate=learning_rate,
+                                      epsilon=epsilon).minimize(cross_entropy_loss)
     
     return logits, train_op, cross_entropy_loss
 
@@ -190,7 +193,7 @@ print("-------------------------------------------")
 
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             tf_label, keep_prob, learning_rate,
+             tf_label, keep_prob, learning_rate, epsilon,
              logits,
              tf_prediction, tf_metric, tf_metric_update, running_vars, running_vars_initializer):
     """
@@ -205,6 +208,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param tf_label: TF Placeholder for label images
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
+    :param epsilon: TF Placeholder for epsilon of the Adam optimizer
     :param logits: TF Placeholder for logits
     :param tf_prediction: TF Placeholder for predictions of images
     :param tf_metric: metric of a tf.metrics.mean_iou
@@ -232,7 +236,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
                          feed_dict={input_image: images, 
                                     tf_label: labels,
                                     keep_prob:KEEP_PROB, 
-                                    learning_rate:LEARNING_RATE})
+                                    learning_rate:LEARNING_RATE,
+                                    epsilon: EPSILON})
             
 
             # calculate the score (IoU) predicted for this batch
@@ -285,8 +290,9 @@ def run():
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
     
-    # Placeholder for learning rate
+    # Placeholder for learning rate & epsilon of Adam optimizer
     tf_learning_rate = tf.placeholder(tf.float32)    
+    tf_epsilon       = tf.placeholder(tf.float32)    
 
     # Placeholders to take in batches of data
     #tf_label      = tf.placeholder(tf.float32, [None, None, None, num_classes], name='label')
@@ -324,7 +330,9 @@ def run():
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
         layers_output = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
-        logits, train_op, cross_entropy_loss = optimize(layers_output, tf_label, tf_learning_rate, num_classes)
+        logits, train_op, cross_entropy_loss = optimize(layers_output, tf_label, 
+                                                        tf_learning_rate, tf_epsilon,
+                                                        num_classes)
         
         sess.run(tf.global_variables_initializer())
         
@@ -335,7 +343,7 @@ def run():
         epochs        = EPOCHS
         batch_size    = BATCH_SIZE
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-                 tf_label, keep_prob, tf_learning_rate,
+                 tf_label, keep_prob, tf_learning_rate, tf_epsilon,
                  logits,
                  tf_prediction, tf_metric, tf_metric_update, running_vars, running_vars_initializer)
 
