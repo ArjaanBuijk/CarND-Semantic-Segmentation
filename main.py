@@ -27,12 +27,12 @@ from tensorflow.python.util import compat
 
 # Hyper-parameters
 EPOCHS        = 15
-BATCH_SIZE    = 4
+BATCH_SIZE    = 1
 KEEP_PROB     = 0.5   # Use only during training
-REG           = 1.E-3 # For regularization
+REG           = 5.E-4 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
-LEARNING_RATE = 1.E-5 # Choose value between 1E-4 and 1.E-2
+LEARNING_RATE = 1.E-5 
 EPSILON       = 1.E-5 # Default value of 1.E-8 not always good...
 
 
