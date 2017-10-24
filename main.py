@@ -26,14 +26,15 @@ from tensorflow.core.protobuf import saved_model_pb2
 from tensorflow.python.util import compat
 
 # Hyper-parameters
-EPOCHS        = 15
-BATCH_SIZE    = 1
+EPOCHS        = 100
+BATCH_SIZE    = 4
 KEEP_PROB     = 0.5   # Use only during training
 REG           = 5.E-4 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
 LEARNING_RATE = 1.E-5 
 EPSILON       = 1.E-5 # Default value of 1.E-8 not always good...
+CLIP_NORM     = 1.0   # >0 will apply gradient clipping by its global norm
 
 
 # Check TensorFlow Version
@@ -114,6 +115,11 @@ def skip(output_layer, skip_layer, num_classes, kernel_size, stride, name):
     output = tf.layers.batch_normalization(output)
     return tf.add(output, skip_layer, name=name)
 
+def print_layer_shape(layer):
+    return tf.Print(layer, [tf.shape(layer)],
+                    message="Shape of {} ".format(layer.name),
+                    first_n=1, summarize=4, )     
+    
 
 def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
@@ -125,12 +131,11 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     #
-    # Uncomment these to see dimensions of the layers 
+    # Print the dimensions of the vgg layers 
     #
-    #tf.Print(vgg_layer3_out, [tf.shape(vgg_layer3_out)], message="Shape of vgg_layer3_out: ")
-    #tf.Print(vgg_layer4_out, [tf.shape(vgg_layer4_out)], message="Shape of vgg_layer4_out: ")
-    #tf.Print(vgg_layer7_out, [tf.shape(vgg_layer7_out)], message="Shape of vgg_layer7_out: ")
-    #
+    vgg_layer3_out = print_layer_shape(vgg_layer3_out) 
+    vgg_layer4_out = print_layer_shape(vgg_layer4_out)  
+    vgg_layer7_out = print_layer_shape(vgg_layer7_out)      
 
     # TODO: Implement function
     
@@ -140,16 +145,16 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     l7_1x1 = conv2d_1x1(vgg_layer7_out, num_classes, 'l7_1x1')
         
     # upsample with two skip connection and a deconvolution back to original image size
+    l7_1x1 = print_layer_shape(l7_1x1)
+    
     output = skip(l7_1x1, l4_1x1, num_classes,  4, 2, name='skip4')
+    output = print_layer_shape(output)
+    
     output = skip(output, l3_1x1, num_classes,  4, 2, name='skip3')
+    output = print_layer_shape(output)
     
-    # try1
-    output = deconvolute(output , num_classes, 16, 8, name='output') 
-    
-    # try2 - do it in 3 increments, to get some more depth in the network
-    #output = deconvolute(output, num_classes, 4, 2, name='final1')
-    #output = deconvolute(output, num_classes, 2, 2, name='final2')
-    #output = deconvolute(output, num_classes, 2, 2, name='output')
+    output = deconvolute(output , num_classes, 16, 8, name='output')
+    output = print_layer_shape(output)
     
     return output
 
@@ -181,9 +186,23 @@ def optimize(nn_last_layer, tf_label, learning_rate, epsilon, num_classes):
                                         labels=labels,logits=logits,name='loss'))
     
     # training is done with Adam optimizer
-    train_op = tf.train.AdamOptimizer(learning_rate=learning_rate,
-                                      epsilon=epsilon).minimize(cross_entropy_loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,
+                                      epsilon=epsilon)
     
+    # with or without gradient clipping
+    if CLIP_NORM > 0:
+        # clip the global norm
+        # see: https://stackoverflow.com/questions/36498127/how-to-effectively-apply-gradient-clipping-in-tensor-flow        
+        gradients, variables = zip(*optimizer.compute_gradients(cross_entropy_loss))
+        # summarize the global norm, to find out the appropriate clip level -> visualize with Tensorboard
+        #norms = tf.global_norm(gradients)
+        #gradnorm_s = tf.summary.scalar('Global gradients norm', norms)
+        # clip it
+        gradients, _ = tf.clip_by_global_norm(gradients, CLIP_NORM)
+        train_op = optimizer.apply_gradients(zip(gradients, variables))
+    else:
+        train_op = optimizer.minimize(cross_entropy_loss)
+          
     return logits, train_op, cross_entropy_loss
 
 print("-------------------------------------------")
@@ -319,6 +338,11 @@ def run():
     #  https://www.cityscapes-dataset.com/
 
     with tf.Session() as sess:
+        # Writer for Tensorboard visualization
+        LOGDIR='./LOG'
+        train_writer = tf.summary.FileWriter(LOGDIR,
+                                             graph=sess.graph)
+        
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
@@ -351,6 +375,7 @@ def run():
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
-        
+    
+    
 if __name__ == '__main__':
     run()
