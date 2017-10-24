@@ -144,12 +144,12 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     output = skip(output, l3_1x1, num_classes,  4, 2, name='skip3')
     
     # try1
-    #output = deconvolute(output , num_classes, 16, 8, name='output') 
+    output = deconvolute(output , num_classes, 16, 8, name='output') 
     
     # try2 - do it in 3 increments, to get some more depth in the network
-    output = deconvolute(output, num_classes, 4, 2, name='final1')
-    output = deconvolute(output, num_classes, 2, 2, name='final2')
-    output = deconvolute(output, num_classes, 2, 2, name='output')
+    #output = deconvolute(output, num_classes, 4, 2, name='final1')
+    #output = deconvolute(output, num_classes, 2, 2, name='final2')
+    #output = deconvolute(output, num_classes, 2, 2, name='output')
     
     return output
 
