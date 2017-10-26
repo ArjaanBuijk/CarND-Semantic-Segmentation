@@ -39,6 +39,32 @@ stride=8
 x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
 conv = upsample(x, kernel_size, stride, depth=d)
 
+# 10x10x3 to 88x88x3 in 3 steps
+# step 1: to 22x22x3
+h=10
+w=10
+d=3
+kernel_size=4
+stride=2
+x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
+conv = upsample(x, kernel_size, stride, depth=d)
+# step 2: to 44x44x3
+h=22
+w=22
+d=3
+kernel_size=2
+stride=2
+x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
+conv = upsample(x, kernel_size, stride, depth=d)
+# step 2: to 88x88x3
+h=44
+w=44
+d=3
+kernel_size=2
+stride=2
+x = tf.constant(np.random.randn(1, h, w, d), dtype=tf.float32)
+conv = upsample(x, kernel_size, stride, depth=d)
+
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())

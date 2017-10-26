@@ -33,8 +33,8 @@ REG           = 5.E-4 # For regularization
 
 # Hyper-parameters to drive Adam optimizer
 LEARNING_RATE = 1.E-5 
-EPSILON       = 1.E-5 # Default value of 1.E-8 not always good...
-CLIP_NORM     = 1.0   # >0 will apply gradient clipping by its global norm
+EPSILON       = 1.E-8 
+CLIP_NORM     = 0.0   # >0 will apply gradient clipping by its global norm
 
 
 # Check TensorFlow Version
